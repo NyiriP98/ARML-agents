@@ -1,0 +1,112 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using Unity.MLAgents;
+using Unity.MLAgents.Sensors;
+using Unity.MLAgents.Actuators;
+ 
+ 
+public class ScoreGoal : Agent{
+    [SerializeField] private Transform targetTransform;
+    private Vector3 lastAgentPosition;
+    public float minX = -14f;
+    public float maxX =  14f;
+    public float minZ = -10f;
+    public float maxZ =  10f;
+    private bool targetHit = false;
+    public ScoreGoal scoreGoalScript;
+    public bool ballHitWall = false;// Referencia az ScoreGoal komponensre
+ 
+    void Start() {
+    // Megkeressük az ScoreGoal komponenst az Agent objektumban és elmentjük a scoreGoalScript változóba
+    scoreGoalScript = GetComponent<ScoreGoal>();}
+    public override void OnEpisodeBegin()
+    {
+        float randomX = Random.Range(minX, maxX);
+        float randomZ = Random.Range(minZ, maxZ);
+        ballHitWall = false;
+        targetHit = false;
+        targetTransform.localPosition = new Vector3(randomX, 0.21f, randomZ);
+        Rigidbody targetRigidbody = targetTransform.GetComponent<Rigidbody>();
+        transform.localPosition = new Vector3(2f, 0.8f, 0f);
+        targetRigidbody.velocity=Vector3.zero;
+        targetRigidbody.angularVelocity = Vector3.zero;
+        lastAgentPosition = transform.localPosition;
+    }
+    public override void CollectObservations(VectorSensor sensor){
+        /*sensor.AddObservation(transform.position);
+        sensor.AddObservation(targetTransform.position);*/
+    
+        sensor.AddObservation((targetTransform.localPosition - transform.localPosition));
+    }
+    public override void OnActionReceived(ActionBuffers actions)
+    {
+        if (!targetHit)
+        {   if (!ballHitWall){
+                float moveX = actions.ContinuousActions[0];
+                float moveZ = actions.ContinuousActions[1];
+                /*Debug.Log("MoveZ: " + moveZ);
+                Debug.Log("MoveX: " + moveX);*/
+                transform.localPosition += new Vector3(moveX, 0f, moveZ) * Time.deltaTime * 5f;
+                float distanceToTarget = Vector3.Distance(transform.localPosition, targetTransform.localPosition);
+ 
+            // Ha az ágens közel van a célhoz, jutalmazd és indítsd el a cél gurulását
+                if (distanceToTarget < 1.5f)
+                {
+                    SetReward(3f); // Jutalom beállítása
+                    targetHit = true; // A cél eltalálásának nyomon követése
+ 
+                // Cél gurulásának indítása
+                    Rigidbody targetRigidbody = targetTransform.GetComponent<Rigidbody>();
+                    if (targetRigidbody != null)
+                    {
+                        Vector3 directionToAgent = transform.localPosition - targetTransform.localPosition;
+                        directionToAgent.Normalize();
+ 
+                    // Példa: A cél guruljon el a jobb oldalra az ágens előtt
+                        Vector3 forceDirection = Quaternion.Euler(0, 180, 0) * directionToAgent;
+ 
+                        targetRigidbody.AddForce(forceDirection * 5f, ForceMode.Impulse);
+                    }
+                }
+        }
+        }
+        // Az ügynök mozgatása
+       
+    }
+   
+    public override void Heuristic(in ActionBuffers actionsOut){
+        if (!ballHitWall){
+            ActionSegment<float> continuousActions =actionsOut.ContinuousActions;
+            continuousActions[0] =Input.GetAxisRaw("Horizontal");
+            continuousActions[1] =Input.GetAxisRaw("Vertical");
+        }
+        else{
+            ActionSegment<float> continuousActions =actionsOut.ContinuousActions;
+            continuousActions[0] =Input.GetAxisRaw("Horizontal");
+            continuousActions[1] =Input.GetAxisRaw("Vertical");
+        }
+    }
+    /*private void EndEpisode(){
+        targetRigidbody.velocity=Vector3.zero;
+        targetRigidbody.angularVelocity = Vector3.zero;
+       
+    }*/
+    private void OnTriggerEnter(Collider other) {
+       
+        if (other.gameObject.tag=="Fal"){
+       
+            SetReward(-10f);
+           
+           
+            EndEpisode();
+    }
+        else if (other.gameObject.tag=="Kapu"){
+       
+            SetReward(-10f);
+           
+           
+            EndEpisode();
+    }
+}
+}

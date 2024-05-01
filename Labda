@@ -1,0 +1,29 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using Unity.MLAgents;
+
+public class Labda : MonoBehaviour
+{
+    public ScoreGoal agent;
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.tag=="Kapu")
+        {
+            // Ha a target eltalálja a kaput, jutalmat kapunk
+            agent.ballHitWall=true;
+            agent.SetReward(10f);
+            agent.EndEpisode(); // Az epizód befejezése
+        }
+        else if (other.gameObject.tag=="Fal")
+        {
+            // Ha a target a falat találja el, büntetést kapunk
+            agent.ballHitWall=true;
+            agent.SetReward(-1f);
+            
+            agent.EndEpisode(); // Az epizód befejezése
+        }
+    }
+}
+
+
